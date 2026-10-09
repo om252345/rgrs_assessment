@@ -50,6 +50,13 @@ flowchart TD
 
 ---
 
+## CPU and Memory Cosiderations
+For 60 fps performance of various devices each fram has to compute in 16ms. FOr smooth scrolling using LazyColumn is used, which load items lazily as displayed. For Image loading Coil 
+library does bitmap downscaling and caching of images in memory to get smooth scroll and no image is loaded from disk/network again.
+For CPU, Coroutines are widely used to keep UI thread free without janks, all room transaction are done in coroutines, Sync worker is coroutine worker as well.
+
+---
+
 ##  Tech Stack & Tools
 - **Language**: Kotlin
 - **UI Framework**: Jetpack Compose & Material 3
