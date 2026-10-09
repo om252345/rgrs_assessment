@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Marketplace</string>
+    <string name="favorite">Favorite\n</string>
+    <string name="create_listing">Create Listing</string>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- Treat hardcoded layout directions as an error to enforce Right-to-Left (RTL) safety -->
+    <issue id="RtlHardcoded" severity="error" />
+    <issue id="RtlEnabled" severity="error" />
+
+    <!-- Downgrade deprecation warnings to informational so they don't clog up build logs -->
+    <issue id="Deprecated" severity="informational" />
+
+    <!-- Ignore translation warnings if you only officially support one language -->
+    <issue id="MissingTranslation" severity="ignore" />
+</lint>
