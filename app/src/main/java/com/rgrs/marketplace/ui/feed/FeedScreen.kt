@@ -26,10 +26,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,11 +52,27 @@ import java.util.Locale
 fun FeedScreen(onCreateClick: () -> Unit) {
     val viewModel: FeedViewModel = hiltViewModel()
 
+    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle(initialValue = true)
+    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle(initialValue = false)
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(Unit) {
         viewModel.loadListings()
     }
 
+    LaunchedEffect(isOnline) {
+        if (!isOnline) {
+            snackbarHostState.showSnackbar(
+                message = "Device is offline. Changes will sync when online.",
+                duration = SnackbarDuration.Indefinite
+            )
+        } else {
+            snackbarHostState.currentSnackbarData?.dismiss()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateClick,
@@ -67,20 +87,38 @@ fun FeedScreen(onCreateClick: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
+                actions = {
+                    if (isSyncing) {
+                        Box(
+                            modifier = Modifier.padding(start = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { paddingValues ->
         FeedContent(viewModel, modifier = Modifier.padding(paddingValues))
     }
-
 }
 
 @Composable
-fun FeedContent( viewModel: FeedViewModel, modifier: Modifier) {
+fun FeedContent(viewModel: FeedViewModel, modifier: Modifier) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     when (val state = uiState.value) {
         is UiState.Loading -> LoadingScreen(modifier)
-        is UiState.Success -> SuccessScreen(modifier, state.listings, onFavoriteClick = viewModel::toggleFavorite)
+        is UiState.Success -> SuccessScreen(
+            modifier,
+            state.listings,
+            onFavoriteClick = viewModel::toggleFavorite
+        )
+
         is UiState.Error -> ErrorScreen(modifier, state.message)
     }
 }
@@ -93,9 +131,13 @@ fun LoadingScreen(modifier: Modifier) {
 }
 
 @Composable
-fun SuccessScreen(modifier: Modifier, listings: List<Listing>, onFavoriteClick: (Long) -> Unit = {}) {
+fun SuccessScreen(
+    modifier: Modifier,
+    listings: List<Listing>,
+    onFavoriteClick: (Long) -> Unit = {}
+) {
     LazyColumn(modifier = modifier) {
-        items(listings, key = {it.id}) { listing ->
+        items(listings, key = { it.id }) { listing ->
             ListingItem(listing, onFavoriteClick = onFavoriteClick)
         }
     }
@@ -110,8 +152,13 @@ fun ErrorScreen(modifier: Modifier, message: String) {
 
 @Composable
 fun ListingItem(listing: Listing, onFavoriteClick: (Long) -> Unit = {}) {
-    val imageModel = listing.imageUrl?.takeIf { it.isNotBlank() }
-        ?: listing.localImagePath?.takeIf { it.isNotBlank() }
+    /* dummy imageUrl is used as a photos storage backend, but it does not load image, will fallback to
+       local image when photos url contains https://api.marketplace.rgrs.com/photos
+    * */
+    val imageModel = listing.imageUrl?.takeIf {
+            it.isNotBlank() && it.contains("https://picsum.photos/") }
+            ?: listing.localImagePath?.takeIf { it.isNotBlank()
+        }
     val formattedPrice = remember(listing.price) {
         NumberFormat.getCurrencyInstance(Locale.getDefault()).format(listing.price)
     }

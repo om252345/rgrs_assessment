@@ -15,8 +15,14 @@ interface ListingDao {
     @Query("SELECT * FROM listing ORDER BY createAt DESC")
     suspend fun getAllListingsAsList(): List<ListingEntity>
 
+    @Query("SELECT COUNT(*) FROM listing")
+    suspend fun getCount(): Int
+
     @Insert
     suspend fun insertListing(listing: ListingEntity)
+
+    @Insert
+    suspend fun insertAll(listings: List<ListingEntity>)
 
     @Update
     suspend fun editListing(listing: ListingEntity)
@@ -26,5 +32,8 @@ interface ListingDao {
 
     @Query("SELECT * FROM listing WHERE syncStatus = 'SYNC_PENDING'")
     fun getPendingListings(): List<ListingEntity>
+
+    @Query("SELECT * FROM listing WHERE syncStatus = 'SYNC_PENDING'")
+    fun getPendingListingsFlow(): Flow<List<ListingEntity>>
 
 }

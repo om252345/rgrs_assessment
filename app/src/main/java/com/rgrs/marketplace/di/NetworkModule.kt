@@ -1,6 +1,7 @@
 package com.rgrs.marketplace.di
 
 import com.rgrs.marketplace.service.ListingApiService
+import com.rgrs.marketplace.service.MockApiInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,8 +19,9 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(mockApiInterceptor: MockApiInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
+            .addInterceptor(mockApiInterceptor)
             .build()
     }
 

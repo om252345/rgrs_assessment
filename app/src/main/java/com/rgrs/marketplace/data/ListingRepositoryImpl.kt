@@ -15,6 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
@@ -24,8 +25,43 @@ class ListingRepositoryImpl @Inject constructor(
     private val listingDao: ListingDao,
     @param:ApplicationContext private val context: Context
 ) : ListingRepository {
+
     override fun getListings(): Flow<List<Listing>> {
-        return listingDao.getAllListings().map { it.map { listing -> listing.toDomainModel() } }
+        return listingDao.getAllListings()
+            .onStart {
+                seedInitialData()
+            }
+            .map { it.map { listing -> listing.toDomainModel() } }
+    }
+
+    private suspend fun seedInitialData() {
+        if (listingDao.getCount() == 0) {
+            val categories = listOf(
+                "Wireless Headphones", "Mechanical Keyboard", "Smart Watch",
+                "Ergonomic Chair", "4K Monitor", "Vintage Camera",
+                "Espresso Machine", "Bluetooth Speaker", "Leather Jacket",
+                "Gaming Mouse", "Running Shoes", "Backpack", "Tablet Air"
+            )
+            val mockItems = (1..200).map { i ->
+                val category = categories[i % categories.size]
+                ListingEntity(
+                    id = 0,
+                    title = "$category #$i",
+                    price = 15.0 + (i * 4.5 % 400),
+                    imageUrl = "https://picsum.photos/seed/$i/300/300",
+                    localImagePath = null,
+                    isFavourite = i % 7 == 0,
+                    createAt = System.currentTimeMillis() - (i * 3600000L),
+                    updatedAt = System.currentTimeMillis() - (i * 3600000L),
+                    syncStatus = SyncStatus.SYNCED.name
+                )
+            }
+            listingDao.insertAll(mockItems)
+        }
+    }
+
+    override fun hasPendingListings(): Flow<Boolean> {
+        return listingDao.getPendingListingsFlow().map { it.isNotEmpty() }
     }
 
     override suspend fun toggleFavorite(id: Long) {
@@ -62,6 +98,10 @@ class ListingRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun syncPendingListings() {
+        enqueueSyncWork()
+    }
+
     private fun saveLocalImage(imageUriString: String?): String? {
         if (imageUriString.isNullOrBlank()) return null
         return try {
@@ -94,7 +134,7 @@ class ListingRepositoryImpl @Inject constructor(
 
         WorkManager.getInstance(context).enqueueUniqueWork(
             "SyncWorker",
-            ExistingWorkPolicy.KEEP,
+            ExistingWorkPolicy.REPLACE,
             syncRequest
         )
     }

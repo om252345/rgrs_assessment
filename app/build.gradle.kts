@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.hilt.common)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.hilt.work)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room3.runtime)
@@ -69,6 +70,7 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.retrofit)
 
+    ksp(libs.androidx.hilt.compiler)
     ksp(libs.androidx.room3.compiler)
     ksp(libs.hilt.android.compiler)
 

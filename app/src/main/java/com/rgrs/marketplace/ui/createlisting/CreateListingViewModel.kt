@@ -2,17 +2,29 @@ package com.rgrs.marketplace.ui.createlisting
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rgrs.marketplace.data.sync.NetworkObserver
 import com.rgrs.marketplace.domain.ListingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class CreateListingViewModel @Inject constructor(val listingRepository: ListingRepository): ViewModel() {
+class CreateListingViewModel @Inject constructor(
+    val listingRepository: ListingRepository,
+    networkObserver: NetworkObserver
+) : ViewModel() {
 
     private val _formFields = MutableStateFlow(ListingFormFields())
     val formFields = _formFields
+
+    val isOnline = networkObserver.isOnline.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        true
+    )
 
     fun onTitleChanged(title: String) {
         _formFields.value = _formFields.value.copy(title = title)
@@ -23,6 +35,7 @@ class CreateListingViewModel @Inject constructor(val listingRepository: ListingR
         _formFields.value = _formFields.value.copy(price = price)
         validateForm()
     }
+
     fun onLocalImagePathChanged(localImagePath: String?) {
         _formFields.value = _formFields.value.copy(localImagePath = localImagePath)
         validateForm()
